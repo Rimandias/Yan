@@ -1,6 +1,7 @@
 export type DieValue = 1 | 2 | 3 | 4 | 5 | 6;
 
 export const DICE_COUNT = 5;
+export const MAX_ROLLS_PER_TURN = 3;
 
 export type UpperCategoryId =
   | 'ones'
@@ -41,7 +42,6 @@ export interface Player {
 export interface GameState {
   players: Player[];
   currentPlayerIndex: number;
-  activeColumn: ColumnId | null;
   dice: DieValue[];
   heldDice: boolean[];
   rollsLeft: number;

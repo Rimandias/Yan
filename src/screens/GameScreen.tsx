@@ -1,22 +1,21 @@
+import { useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
-import { getColumnDefinition } from '../game/categories';
-import { ColumnPicker } from '../components/ColumnPicker';
 import { DiceTray } from '../components/DiceTray';
 import { PrimaryButton } from '../components/PrimaryButton';
 import { ScoreBoard } from '../components/ScoreBoard';
-import { ScoreTable } from '../components/ScoreTable';
+import { CATEGORY_ORDER, getColumnDefinition } from '../game/categories';
 import {
-  canSelectCategory,
-  chooseColumn,
-  getAvailableCategories,
+  canPlaceScore,
   getCurrentPlayer,
+  getForcedCategory,
   rollDice,
+  rollsUsedThisTurn,
   selectCategory,
   toggleHold,
 } from '../game/engine';
 import { computePlayerTotal } from '../game/totals';
-import { CategoryId, ColumnId, GameState } from '../game/types';
+import { CategoryId, ColumnId, GameState, MAX_ROLLS_PER_TURN, Player } from '../game/types';
 
 interface GameScreenProps {
   gameState: GameState;
@@ -24,58 +23,77 @@ interface GameScreenProps {
   onNewGame: () => void;
 }
 
+function explainRejection(
+  gameState: GameState,
+  currentPlayer: Player,
+  columnId: ColumnId,
+  categoryId: CategoryId,
+): string {
+  if (gameState.rollsLeft === MAX_ROLLS_PER_TURN) {
+    return 'Role os dados antes de pontuar.';
+  }
+  if (categoryId in currentPlayer.columns[columnId]) {
+    return 'Essa jogada já foi preenchida nessa coluna.';
+  }
+
+  const definition = getColumnDefinition(columnId);
+  if (definition.requiresFirstRollOnly && rollsUsedThisTurn(gameState) !== 1) {
+    return 'No Seco só vale o resultado da 1ª rolagem do turno.';
+  }
+  if (definition.order !== 'free') {
+    const forced = getForcedCategory(currentPlayer, columnId);
+    const forcedLabel = CATEGORY_ORDER.find((category) => category.id === forced)?.label;
+    return `Nessa coluna a próxima jogada precisa ser: ${forcedLabel}.`;
+  }
+  return 'Não é possível colocar essa pontuação aqui agora.';
+}
+
 export function GameScreen({ gameState, onUpdateGame, onNewGame }: GameScreenProps) {
+  const [feedback, setFeedback] = useState<string | null>(null);
+
   if (gameState.isGameOver) {
     return <GameOverScreen gameState={gameState} onNewGame={onNewGame} />;
   }
 
   const currentPlayer = getCurrentPlayer(gameState);
+  const rolled = gameState.rollsLeft < MAX_ROLLS_PER_TURN;
 
-  if (!gameState.activeColumn) {
-    return (
-      <ScrollView contentContainerStyle={styles.container}>
-        <Text style={styles.turnLabel}>Vez de {currentPlayer.name}</Text>
-        <ColumnPicker
-          player={currentPlayer}
-          onChooseColumn={(columnId: ColumnId) => onUpdateGame(chooseColumn(gameState, columnId))}
-        />
-        <ScoreBoard player={currentPlayer} />
-      </ScrollView>
-    );
-  }
-
-  const columnDefinition = getColumnDefinition(gameState.activeColumn);
-  const rolledThisTurn = gameState.rollsLeft < columnDefinition.maxRolls;
-  const selectableCategories = rolledThisTurn
-    ? getAvailableCategories(currentPlayer, gameState.activeColumn)
-    : [];
+  const handleSelectCell = (columnId: ColumnId, categoryId: CategoryId) => {
+    if (!canPlaceScore(gameState, columnId, categoryId)) {
+      setFeedback(explainRejection(gameState, currentPlayer, columnId, categoryId));
+      return;
+    }
+    setFeedback(null);
+    onUpdateGame(selectCategory(gameState, columnId, categoryId));
+  };
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <Text style={styles.turnLabel}>Vez de {currentPlayer.name}</Text>
-      <Text style={styles.columnLabel}>Coluna: {columnDefinition.label}</Text>
 
       <DiceTray
         dice={gameState.dice}
         heldDice={gameState.heldDice}
         rollsLeft={gameState.rollsLeft}
-        maxRolls={columnDefinition.maxRolls}
-        allowHold={columnDefinition.allowHold}
         onToggleHold={(index) => onUpdateGame(toggleHold(gameState, index))}
-        onRoll={() => onUpdateGame(rollDice(gameState))}
+        onRoll={() => {
+          setFeedback(null);
+          onUpdateGame(rollDice(gameState));
+        }}
       />
 
-      <View style={styles.scoreTableWrapper}>
-        <ScoreTable
-          columnScores={currentPlayer.columns[gameState.activeColumn]}
-          dice={gameState.dice}
-          selectableCategories={selectableCategories}
-          onSelectCategory={(categoryId: CategoryId) => {
-            if (!canSelectCategory(gameState, categoryId)) return;
-            onUpdateGame(selectCategory(gameState, categoryId));
-          }}
-        />
-      </View>
+      {feedback ? (
+        <View style={styles.feedbackBanner}>
+          <Text style={styles.feedbackText}>{feedback}</Text>
+        </View>
+      ) : null}
+
+      <ScoreBoard
+        player={currentPlayer}
+        dice={gameState.dice}
+        rolled={rolled}
+        onSelectCell={handleSelectCell}
+      />
     </ScrollView>
   );
 }
@@ -117,14 +135,20 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#1f2933',
   },
-  columnLabel: {
-    fontSize: 15,
-    color: '#52606d',
-    marginTop: -12,
-  },
-  scoreTableWrapper: {
+  feedbackBanner: {
     width: '100%',
     maxWidth: 360,
+    backgroundColor: '#fff4e5',
+    borderWidth: 1,
+    borderColor: '#f0b429',
+    borderRadius: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+  },
+  feedbackText: {
+    fontSize: 13,
+    color: '#8a5a00',
+    textAlign: 'center',
   },
   gameOverContainer: {
     flexGrow: 1,

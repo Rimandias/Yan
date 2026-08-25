@@ -13,16 +13,20 @@ mesmas 14 jogadas:
 - **Seção inferior**: 2 Pares, Trinca, Full House, Sequência Mínima, Sequência Máxima,
   Quadra, Chance, Yan (5 dados iguais)
 
-As 4 colunas têm regras de preenchimento diferentes:
+Não existe uma etapa de "escolher a coluna" antes de rolar: em cada turno o jogador
+rola os dados normalmente (até 3 rolagens, podendo segurar dados entre elas) e, com o
+resultado em mãos, escolhe em qual coluna/jogada da cartela quer colocá-lo. O jogo não
+sinaliza de antemão quais jogadas estão disponíveis — todas as células vazias aparecem
+iguais e clicáveis — mas impede a colocação se ela não for válida naquele momento:
 
 | Coluna | Regra |
 |---|---|
-| **Descida** | preenche na ordem: Ases → ... → Yan |
-| **Subida** | preenche na ordem inversa: Yan → ... → Ases |
-| **Desordem** | qualquer jogada livre, em qualquer ordem, com até 3 rolagens (segurando dados) |
-| **Seco** | qualquer jogada livre, em qualquer ordem, mas só **1 rolagem** (sem segurar/re-rolar) |
+| **Descida** | só aceita a próxima jogada na ordem Ases → ... → Yan |
+| **Subida** | só aceita a próxima jogada na ordem inversa Yan → ... → Ases |
+| **Desordem** | aceita qualquer jogada livre ainda não preenchida, em qualquer ordem |
+| **Seco** | aceita qualquer jogada livre, em qualquer ordem, mas só com o resultado da **1ª rolagem** do turno (se o jogador segurar e rolar de novo, o Seco fica indisponível até o próximo turno) |
 
-Sempre que a rolagem não pontuar na jogada exigida (ou escolhida), a jogada é **riscada**
+Sempre que a rolagem não pontuar na jogada escolhida, a jogada é **riscada**
 (fica com 0 pontos) e nunca mais pode receber valor.
 
 ### Bônus (por coluna)
@@ -43,15 +47,15 @@ src/
     categories.ts         # categorias, colunas (regras de ordem/rolagem) e bônus
     scoring.ts            # cálculo de pontos de cada categoria
     totals.ts             # totais por coluna (bônus superior + bônus de coluna) e do jogador
-    engine.ts             # máquina de estados: createGame, chooseColumn, rollDice,
-                           # toggleHold, selectCategory
+    engine.ts             # máquina de estados: createGame, rollDice, toggleHold,
+                           # canPlaceScore, selectCategory
     __tests__/             # testes unitários da lógica (Jest)
   components/             # componentes de UI reutilizáveis
     Die.tsx                # um dado (com pips), clicável para segurar
     DiceTray.tsx            # os 5 dados + botão de rolar
-    ColumnPicker.tsx        # escolha da coluna a jogar no turno
-    ScoreTable.tsx          # tabela de pontuação da coluna ativa, com preview de pontos
-    ScoreBoard.tsx           # placar completo (4 colunas x 14 jogadas) do jogador da vez
+    ScoreBoard.tsx           # placar completo (4 colunas x 14 jogadas), interativo:
+                             # toda célula vazia é clicável e igual visualmente; a
+                             # validade só é checada no momento da colocação
     PrimaryButton.tsx       # botão padrão do app
   screens/
     NewGameScreen.tsx       # tela de configuração de jogadores

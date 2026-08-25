@@ -50,8 +50,8 @@ export interface ColumnDefinition {
   id: ColumnId;
   label: string;
   order: 'forcedDown' | 'forcedUp' | 'free';
-  maxRolls: number;
-  allowHold: boolean;
+  /** true apenas para "seco": só aceita o resultado da 1ª rolagem do turno. */
+  requiresFirstRollOnly: boolean;
   description: string;
 }
 
@@ -60,33 +60,29 @@ export const COLUMNS: ColumnDefinition[] = [
     id: 'descida',
     label: 'Descida',
     order: 'forcedDown',
-    maxRolls: 3,
-    allowHold: true,
+    requiresFirstRollOnly: false,
     description: 'Preenche de Ases até Yan, na ordem.',
   },
   {
     id: 'subida',
     label: 'Subida',
     order: 'forcedUp',
-    maxRolls: 3,
-    allowHold: true,
+    requiresFirstRollOnly: false,
     description: 'Preenche de Yan até Ases, na ordem.',
   },
   {
     id: 'desordem',
     label: 'Desordem',
     order: 'free',
-    maxRolls: 3,
-    allowHold: true,
+    requiresFirstRollOnly: false,
     description: 'Qualquer jogada livre, em qualquer ordem.',
   },
   {
     id: 'seco',
     label: 'Seco',
     order: 'free',
-    maxRolls: 1,
-    allowHold: false,
-    description: 'Só uma rolagem, sem segurar dados. Qualquer ordem.',
+    requiresFirstRollOnly: true,
+    description: 'Só vale o resultado da 1ª rolagem do turno, sem segurar/re-rolar.',
   },
 ];
 

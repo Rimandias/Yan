@@ -1,15 +1,14 @@
 import { CATEGORY_ORDER } from '../categories';
 import {
+  canPlaceScore,
   canRoll,
-  canSelectCategory,
-  chooseColumn,
   createGame,
-  getAvailableCategories,
   getAvailableColumns,
   getCurrentPlayer,
   getForcedCategory,
   isColumnComplete,
   rollDice,
+  rollsUsedThisTurn,
   selectCategory,
   toggleHold,
 } from '../engine';
@@ -20,7 +19,7 @@ const forwardOrder = CATEGORY_ORDER.map((category) => category.id);
 const backwardOrder = [...forwardOrder].reverse();
 
 describe('createGame', () => {
-  it('creates each player with 4 empty columns and no active column', () => {
+  it('creates each player with 4 empty columns, ready to roll', () => {
     const state = createGame(['Ana', 'Beto']);
     expect(state.players).toHaveLength(2);
     expect(state.players[0].columns).toEqual({
@@ -29,7 +28,7 @@ describe('createGame', () => {
       desordem: {},
       seco: {},
     });
-    expect(state.activeColumn).toBeNull();
+    expect(state.rollsLeft).toBe(3);
     expect(getAvailableColumns(state.players[0])).toEqual([
       'descida',
       'subida',
@@ -39,94 +38,101 @@ describe('createGame', () => {
   });
 });
 
-describe('chooseColumn', () => {
-  it('sets rollsLeft according to the column rules (3 normally, 1 for seco)', () => {
-    let state = createGame(['Ana']);
-    state = chooseColumn(state, 'descida');
-    expect(state.activeColumn).toBe('descida');
-    expect(state.rollsLeft).toBe(3);
-
-    state = createGame(['Ana']);
-    state = chooseColumn(state, 'seco');
-    expect(state.rollsLeft).toBe(1);
+describe('rolling and holding', () => {
+  it('refuses to place a score before rolling', () => {
+    const state = createGame(['Ana']);
+    expect(canPlaceScore(state, 'desordem', 'chance')).toBe(false);
+    expect(() => selectCategory(state, 'desordem', 'chance')).toThrow();
   });
 
-  it('refuses to roll or hold before a column is chosen', () => {
+  it('refuses to hold dice before the first roll', () => {
     const state = createGame(['Ana']);
-    expect(() => rollDice(state)).toThrow();
     expect(() => toggleHold(state, 0)).toThrow();
+  });
+
+  it('lets the player roll up to 3 times, holding dice in between', () => {
+    let state = createGame(['Ana']);
+    state = rollDice(state, fixedRng(0.99)); // all dice become 6
+    expect(rollsUsedThisTurn(state)).toBe(1);
+
+    state = toggleHold(state, 0);
+    state = rollDice(state, fixedRng(0)); // remaining dice become 1
+    expect(state.dice).toEqual([6, 1, 1, 1, 1]);
+    expect(rollsUsedThisTurn(state)).toBe(2);
+
+    state = rollDice(state, fixedRng(0));
+    expect(canRoll(state)).toBe(false);
+    expect(() => rollDice(state)).toThrow();
   });
 });
 
-describe('forced column order', () => {
-  it('descida forces Ases -> Yan, one category at a time', () => {
+describe('placing a score: no column is pre-chosen', () => {
+  it('can place a rolled result into any column/category the player picks, without a prior selection step', () => {
+    let state = createGame(['Ana', 'Beto']);
+    state = rollDice(state, fixedRng(0)); // dice = [1,1,1,1,1]
+
+    expect(canPlaceScore(state, 'desordem', 'chance')).toBe(true);
+    state = selectCategory(state, 'desordem', 'chance');
+
+    expect(state.players[0].columns.desordem.chance).toBe(5);
+    expect(state.currentPlayerIndex).toBe(1);
+    expect(state.rollsLeft).toBe(3);
+  });
+
+  it('rejects a placement in an already-filled category', () => {
     let state = createGame(['Ana']);
-    state = chooseColumn(state, 'descida');
-    expect(getForcedCategory(getCurrentPlayer(state), 'descida')).toBe('ones');
+    state = rollDice(state, fixedRng(0));
+    state = selectCategory(state, 'desordem', 'chance');
 
     state = rollDice(state, fixedRng(0));
-    expect(() => selectCategory(state, 'twos')).toThrow();
-    state = selectCategory(state, 'ones');
+    expect(canPlaceScore(state, 'desordem', 'chance')).toBe(false);
+    expect(() => selectCategory(state, 'desordem', 'chance')).toThrow();
+  });
+});
 
+describe('forced column order (descida/subida)', () => {
+  it('descida only accepts the next category in Ases -> Yan order', () => {
+    let state = createGame(['Ana']);
+    state = rollDice(state, fixedRng(0));
+
+    expect(getForcedCategory(getCurrentPlayer(state), 'descida')).toBe('ones');
+    expect(canPlaceScore(state, 'descida', 'twos')).toBe(false);
+    expect(canPlaceScore(state, 'descida', 'ones')).toBe(true);
+
+    state = selectCategory(state, 'descida', 'ones');
     expect(getForcedCategory(state.players[0], 'descida')).toBe('twos');
   });
 
-  it('subida forces Yan -> Ases, one category at a time', () => {
+  it('subida only accepts the next category in Yan -> Ases order', () => {
     let state = createGame(['Ana']);
-    state = chooseColumn(state, 'subida');
-    expect(getForcedCategory(getCurrentPlayer(state), 'subida')).toBe('yan');
-
     state = rollDice(state, fixedRng(0));
-    state = selectCategory(state, 'yan');
 
+    expect(getForcedCategory(getCurrentPlayer(state), 'subida')).toBe('yan');
+    expect(canPlaceScore(state, 'subida', 'chance')).toBe(false);
+
+    state = selectCategory(state, 'subida', 'yan');
     expect(getForcedCategory(state.players[0], 'subida')).toBe('chance');
   });
 });
 
-describe('free column order (desordem/seco)', () => {
-  it('lets the player pick any unfilled category', () => {
+describe('seco requires the first roll of the turn, untouched', () => {
+  it('accepts a placement right after the first roll', () => {
     let state = createGame(['Ana']);
-    state = chooseColumn(state, 'desordem');
-    expect(getAvailableCategories(getCurrentPlayer(state), 'desordem')).toEqual(forwardOrder);
-
     state = rollDice(state, fixedRng(0));
-    state = selectCategory(state, 'fullHouse');
-    expect('fullHouse' in state.players[0].columns.desordem).toBe(true);
-    expect(getAvailableCategories(state.players[0], 'desordem')).not.toContain('fullHouse');
+    expect(canPlaceScore(state, 'seco', 'chance')).toBe(true);
+    state = selectCategory(state, 'seco', 'chance');
+    expect(state.players[0].columns.seco.chance).toBe(5);
   });
 
-  it('seco only allows a single roll and no holding', () => {
+  it('rejects a placement once a second or third roll has happened', () => {
     let state = createGame(['Ana']);
-    state = chooseColumn(state, 'seco');
     state = rollDice(state, fixedRng(0));
-
-    expect(canRoll(state)).toBe(false);
-    expect(() => rollDice(state)).toThrow();
-    expect(() => toggleHold(state, 0)).toThrow();
-  });
-});
-
-describe('selectCategory', () => {
-  it('scores into the chosen column, clears the active column, and advances the turn', () => {
-    let state = createGame(['Ana', 'Beto']);
-    state = chooseColumn(state, 'desordem');
-    state = rollDice(state, fixedRng(0)); // dice = [1,1,1,1,1]
-    state = selectCategory(state, 'chance');
-
-    expect(state.players[0].columns.desordem.chance).toBe(5);
-    expect(state.activeColumn).toBeNull();
-    expect(state.currentPlayerIndex).toBe(1);
-  });
-
-  it('refuses to score a category that is not available in the active column', () => {
-    let state = createGame(['Ana']);
-    state = chooseColumn(state, 'desordem');
     state = rollDice(state, fixedRng(0));
-    state = selectCategory(state, 'chance');
+    expect(canPlaceScore(state, 'seco', 'chance')).toBe(false);
+    expect(() => selectCategory(state, 'seco', 'chance')).toThrow();
 
-    state = chooseColumn(state, 'desordem');
-    state = rollDice(state, fixedRng(0));
-    expect(() => selectCategory(state, 'chance')).toThrow();
+    // other columns are unaffected by having rolled more than once
+    expect(canPlaceScore(state, 'desordem', 'chance')).toBe(true);
   });
 });
 
@@ -137,26 +143,13 @@ describe('a full game', () => {
     for (const column of ['descida', 'subida', 'desordem', 'seco'] as const) {
       const order = column === 'subida' ? backwardOrder : forwardOrder;
       for (const categoryId of order as CategoryId[]) {
-        state = chooseColumn(state, column);
         state = rollDice(state, fixedRng(0));
-        state = selectCategory(state, categoryId);
+        state = selectCategory(state, column, categoryId);
       }
       expect(isColumnComplete(state.players[0], column)).toBe(true);
     }
 
     expect(state.isGameOver).toBe(true);
-    expect(() => chooseColumn(state, 'descida')).toThrow();
-  });
-});
-
-describe('canSelectCategory', () => {
-  it('is false before rolling and true only for available categories after rolling', () => {
-    let state = createGame(['Ana']);
-    state = chooseColumn(state, 'descida');
-    expect(canSelectCategory(state, 'ones')).toBe(false);
-
-    state = rollDice(state, fixedRng(0));
-    expect(canSelectCategory(state, 'ones')).toBe(true);
-    expect(canSelectCategory(state, 'twos')).toBe(false);
+    expect(() => rollDice(state)).toThrow();
   });
 });
