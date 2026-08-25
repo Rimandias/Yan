@@ -1,6 +1,6 @@
 import { StyleSheet, Text, View } from 'react-native';
 
-import { DieValue, MAX_ROLLS_PER_TURN } from '../game/types';
+import { DieValue } from '../game/types';
 import { Die } from './Die';
 import { PrimaryButton } from './PrimaryButton';
 
@@ -8,12 +8,23 @@ interface DiceTrayProps {
   dice: DieValue[];
   heldDice: boolean[];
   rollsLeft: number;
+  maxRolls: number;
+  allowHold: boolean;
   onToggleHold: (index: number) => void;
   onRoll: () => void;
 }
 
-export function DiceTray({ dice, heldDice, rollsLeft, onToggleHold, onRoll }: DiceTrayProps) {
-  const hasRolledThisTurn = rollsLeft < MAX_ROLLS_PER_TURN;
+export function DiceTray({
+  dice,
+  heldDice,
+  rollsLeft,
+  maxRolls,
+  allowHold,
+  onToggleHold,
+  onRoll,
+}: DiceTrayProps) {
+  const hasRolledThisTurn = rollsLeft < maxRolls;
+  const canHoldDice = allowHold && hasRolledThisTurn;
 
   return (
     <View style={styles.container}>
@@ -23,13 +34,17 @@ export function DiceTray({ dice, heldDice, rollsLeft, onToggleHold, onRoll }: Di
             key={index}
             value={value}
             held={heldDice[index]}
-            disabled={!hasRolledThisTurn}
+            disabled={!canHoldDice}
             onPress={() => onToggleHold(index)}
           />
         ))}
       </View>
       <Text style={styles.hint}>
-        {hasRolledThisTurn ? 'Toque num dado para segurá-lo' : 'Role os dados para começar'}
+        {!hasRolledThisTurn
+          ? 'Role os dados para começar'
+          : allowHold
+            ? 'Toque num dado para segurá-lo'
+            : 'Rolagem única: escolha uma jogada'}
       </Text>
       <PrimaryButton
         label={rollsLeft > 0 ? `Rolar dados (${rollsLeft} restante${rollsLeft === 1 ? '' : 's'})` : 'Sem rolagens'}

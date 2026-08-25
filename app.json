@@ -1,17 +1,17 @@
 {
   "expo": {
-    "name": "Yahtzee",
-    "slug": "yahtzee",
+    "name": "Yan",
+    "slug": "yan",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.example.yahtzee"
+      "bundleIdentifier": "com.example.yan"
     },
     "android": {
-      "package": "com.example.yahtzee",
+      "package": "com.example.yan",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/android-icon-foreground.png",

@@ -9,6 +9,12 @@ describe('scoreForCategory', () => {
     expect(scoreForCategory('sixes', dice(1, 2, 3, 4, 5))).toBe(0);
   });
 
+  it('scores two pairs as twice the sum of the two highest paired values', () => {
+    expect(scoreForCategory('twoPairs', dice(2, 2, 4, 4, 6))).toBe(2 * (2 + 4));
+    expect(scoreForCategory('twoPairs', dice(1, 1, 1, 5, 5))).toBe(2 * (1 + 5));
+    expect(scoreForCategory('twoPairs', dice(1, 2, 3, 4, 5))).toBe(0);
+  });
+
   it('scores three of a kind as the sum of all dice, or 0', () => {
     expect(scoreForCategory('threeOfAKind', dice(2, 2, 2, 5, 6))).toBe(17);
     expect(scoreForCategory('threeOfAKind', dice(1, 2, 3, 4, 5))).toBe(0);
@@ -37,12 +43,12 @@ describe('scoreForCategory', () => {
     expect(scoreForCategory('largeStraight', dice(1, 2, 3, 4, 4))).toBe(0);
   });
 
-  it('scores yahtzee as 50 only when all five dice match', () => {
-    expect(scoreForCategory('yahtzee', dice(6, 6, 6, 6, 6))).toBe(50);
-    expect(scoreForCategory('yahtzee', dice(6, 6, 6, 6, 5))).toBe(0);
-  });
-
   it('scores chance as the sum of all dice', () => {
     expect(scoreForCategory('chance', dice(1, 2, 3, 4, 5))).toBe(15);
+  });
+
+  it('scores yan as 50 only when all five dice match', () => {
+    expect(scoreForCategory('yan', dice(6, 6, 6, 6, 6))).toBe(50);
+    expect(scoreForCategory('yan', dice(6, 6, 6, 6, 5))).toBe(0);
   });
 });

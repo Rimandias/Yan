@@ -28,6 +28,19 @@ function scoreOfAKind(dice: DieValue[], minCount: number): number {
   return counts.some((count) => count >= minCount) ? sum(dice) : 0;
 }
 
+function scoreTwoPairs(dice: DieValue[]): number {
+  const counts = countsByValue(dice);
+  const pairValues = counts
+    .map((count, index) => ({ value: index + 1, count }))
+    .filter(({ count }) => count >= 2)
+    .map(({ value }) => value)
+    .sort((a, b) => b - a);
+
+  if (pairValues.length < 2) return 0;
+  const [highest, second] = pairValues;
+  return 2 * (highest + second);
+}
+
 function scoreFullHouse(dice: DieValue[]): number {
   const counts = countsByValue(dice).filter((count) => count > 0);
   const hasThree = counts.includes(3);
@@ -50,18 +63,19 @@ function scoreStraight(dice: DieValue[], run: number, points: number): number {
   return longestRun >= run ? points : 0;
 }
 
-function scoreYahtzee(dice: DieValue[]): number {
+function scoreYan(dice: DieValue[]): number {
   return countsByValue(dice).some((count) => count === 5) ? 50 : 0;
 }
 
 const LOWER_SCORERS: Record<LowerCategoryId, (dice: DieValue[]) => number> = {
+  twoPairs: scoreTwoPairs,
   threeOfAKind: (dice) => scoreOfAKind(dice, 3),
-  fourOfAKind: (dice) => scoreOfAKind(dice, 4),
   fullHouse: scoreFullHouse,
   smallStraight: (dice) => scoreStraight(dice, 4, 30),
   largeStraight: (dice) => scoreStraight(dice, 5, 40),
-  yahtzee: scoreYahtzee,
+  fourOfAKind: (dice) => scoreOfAKind(dice, 4),
   chance: sum,
+  yan: scoreYan,
 };
 
 export function scoreForCategory(categoryId: CategoryId, dice: DieValue[]): number {

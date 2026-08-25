@@ -1,7 +1,37 @@
-# Yahtzee
+# Yan
 
-Jogo de Yahtzee (pass-and-play, 1 a 4 jogadores) construído com [Expo](https://expo.dev)
-(React Native + TypeScript), pensado para depois ser publicado na Google Play e na App Store.
+Jogo de dados "Yan" (variante de Yahtzee com 4 colunas, pass-and-play, 1 a 4 jogadores)
+construído com [Expo](https://expo.dev) (React Native + TypeScript), pensado para depois
+ser publicado na Google Play e na App Store.
+
+## Regras
+
+Cada jogador preenche uma cartela com **4 colunas independentes**, cada uma com as
+mesmas 14 jogadas:
+
+- **Seção superior**: Ases, Duques, Ternos, Quadras, Quinas, Senas (soma dos dados daquele valor)
+- **Seção inferior**: 2 Pares, Trinca, Full House, Sequência Mínima, Sequência Máxima,
+  Quadra, Chance, Yan (5 dados iguais)
+
+As 4 colunas têm regras de preenchimento diferentes:
+
+| Coluna | Regra |
+|---|---|
+| **Descida** | preenche na ordem: Ases → ... → Yan |
+| **Subida** | preenche na ordem inversa: Yan → ... → Ases |
+| **Desordem** | qualquer jogada livre, em qualquer ordem, com até 3 rolagens (segurando dados) |
+| **Seco** | qualquer jogada livre, em qualquer ordem, mas só **1 rolagem** (sem segurar/re-rolar) |
+
+Sempre que a rolagem não pontuar na jogada exigida (ou escolhida), a jogada é **riscada**
+(fica com 0 pontos) e nunca mais pode receber valor.
+
+### Bônus (por coluna)
+
+- **Bônus da seção superior**: soma da seção superior ≥ 60 → **+40**
+- **Bônus de coluna completa**: só é concedido se a coluna já tiver o bônus da seção
+  superior **e** nenhuma jogada da coluna tiver sido riscada → **+40** adicionais
+
+O total do jogador é a soma dos totais das 4 colunas.
 
 ## Estrutura do projeto
 
@@ -9,17 +39,19 @@ Jogo de Yahtzee (pass-and-play, 1 a 4 jogadores) construído com [Expo](https://
 App.tsx                  # ponto de entrada da UI (alterna Novo Jogo <-> Jogo)
 src/
   game/                   # lógica do jogo, pura e sem dependência de UI
-    types.ts              # tipos: DieValue, Player, GameState, CategoryId...
-    categories.ts         # definição das categorias (nome, seção)
+    types.ts              # tipos: DieValue, Player, ColumnId, GameState...
+    categories.ts         # categorias, colunas (regras de ordem/rolagem) e bônus
     scoring.ts            # cálculo de pontos de cada categoria
-    totals.ts             # soma da seção superior, bônus e total geral
-    engine.ts             # máquina de estados: createGame, rollDice,
+    totals.ts             # totais por coluna (bônus superior + bônus de coluna) e do jogador
+    engine.ts             # máquina de estados: createGame, chooseColumn, rollDice,
                            # toggleHold, selectCategory
     __tests__/             # testes unitários da lógica (Jest)
   components/             # componentes de UI reutilizáveis
     Die.tsx                # um dado (com pips), clicável para segurar
     DiceTray.tsx            # os 5 dados + botão de rolar
-    ScoreTable.tsx          # tabela de pontuação com preview de pontos
+    ColumnPicker.tsx        # escolha da coluna a jogar no turno
+    ScoreTable.tsx          # tabela de pontuação da coluna ativa, com preview de pontos
+    ScoreBoard.tsx           # placar completo (4 colunas x 14 jogadas) do jogador da vez
     PrimaryButton.tsx       # botão padrão do app
   screens/
     NewGameScreen.tsx       # tela de configuração de jogadores
@@ -53,6 +85,6 @@ Este projeto usa Expo, que permite gerar builds nativos para as duas lojas com o
 Studio manualmente. Antes de gerar o build de produção:
 
 1. Definir um `bundleIdentifier` (iOS) e `package` (Android) definitivos em `app.json`
-   (hoje estão como placeholder `com.example.yahtzee`).
+   (hoje estão como placeholder `com.example.yan`).
 2. Substituir os ícones em `assets/` pelos ícones finais do app.
 3. Criar uma conta Expo (EAS) e rodar `npx eas build` para gerar os binários de loja.

@@ -1,53 +1,59 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { LOWER_CATEGORIES, UPPER_BONUS_AMOUNT, UPPER_BONUS_THRESHOLD, UPPER_CATEGORIES } from '../game/categories';
+import {
+  LOWER_CATEGORIES,
+  UPPER_BONUS_AMOUNT,
+  UPPER_BONUS_THRESHOLD,
+  UPPER_CATEGORIES,
+  WHOLE_COLUMN_BONUS_AMOUNT,
+} from '../game/categories';
 import { scoreForCategory } from '../game/scoring';
-import { computeTotals } from '../game/totals';
-import { CategoryId, DieValue, Player } from '../game/types';
+import { computeColumnTotals } from '../game/totals';
+import { CategoryId, ColumnScores, DieValue } from '../game/types';
 
 interface ScoreTableProps {
-  player: Player;
+  columnScores: ColumnScores;
   dice: DieValue[];
-  canScore: boolean;
+  selectableCategories: CategoryId[];
   onSelectCategory: (categoryId: CategoryId) => void;
 }
 
 function ScoreRow({
   label,
   categoryId,
-  player,
+  columnScores,
   dice,
-  canScore,
+  selectableCategories,
   onSelectCategory,
 }: {
   label: string;
   categoryId: CategoryId;
-  player: Player;
+  columnScores: ColumnScores;
   dice: DieValue[];
-  canScore: boolean;
+  selectableCategories: CategoryId[];
   onSelectCategory: (categoryId: CategoryId) => void;
 }) {
-  const scored = player.scores[categoryId];
+  const scored = columnScores[categoryId];
   const isScored = scored !== undefined;
-  const preview = isScored ? null : scoreForCategory(categoryId, dice);
-  const interactive = canScore && !isScored;
+  const isSelectable = !isScored && selectableCategories.includes(categoryId);
+  const preview = isSelectable ? scoreForCategory(categoryId, dice) : null;
 
   return (
     <Pressable
-      disabled={!interactive}
+      disabled={!isSelectable}
       onPress={() => onSelectCategory(categoryId)}
       style={styles.row}
     >
       <Text style={styles.rowLabel}>{label}</Text>
-      <Text style={[styles.rowValue, isScored && styles.rowValueScored, interactive && styles.rowValuePreview]}>
-        {isScored ? scored : canScore ? preview : '-'}
+      <Text style={[styles.rowValue, isScored && styles.rowValueScored, isSelectable && styles.rowValuePreview]}>
+        {isScored ? scored : isSelectable ? preview : '-'}
       </Text>
     </Pressable>
   );
 }
 
-export function ScoreTable({ player, dice, canScore, onSelectCategory }: ScoreTableProps) {
-  const totals = computeTotals(player);
+export function ScoreTable({ columnScores, dice, selectableCategories, onSelectCategory }: ScoreTableProps) {
+  const totals = computeColumnTotals(columnScores);
 
   return (
     <View style={styles.container}>
@@ -56,9 +62,9 @@ export function ScoreTable({ player, dice, canScore, onSelectCategory }: ScoreTa
           key={category.id}
           label={category.label}
           categoryId={category.id}
-          player={player}
+          columnScores={columnScores}
           dice={dice}
-          canScore={canScore}
+          selectableCategories={selectableCategories}
           onSelectCategory={onSelectCategory}
         />
       ))}
@@ -80,9 +86,9 @@ export function ScoreTable({ player, dice, canScore, onSelectCategory }: ScoreTa
           key={category.id}
           label={category.label}
           categoryId={category.id}
-          player={player}
+          columnScores={columnScores}
           dice={dice}
-          canScore={canScore}
+          selectableCategories={selectableCategories}
           onSelectCategory={onSelectCategory}
         />
       ))}
@@ -90,8 +96,15 @@ export function ScoreTable({ player, dice, canScore, onSelectCategory }: ScoreTa
       <View style={styles.divider} />
 
       <View style={styles.summaryRow}>
-        <Text style={styles.totalLabel}>Total</Text>
-        <Text style={styles.totalValue}>{totals.grandTotal}</Text>
+        <Text style={styles.summaryLabel}>
+          Bônus coluna completa (sem riscar, com bônus superior)
+        </Text>
+        <Text style={styles.summaryValue}>{totals.wholeColumnBonus}</Text>
+      </View>
+
+      <View style={styles.summaryRow}>
+        <Text style={styles.totalLabel}>Total da coluna</Text>
+        <Text style={styles.totalValue}>{totals.columnTotal}</Text>
       </View>
     </View>
   );
@@ -129,10 +142,12 @@ const styles = StyleSheet.create({
   summaryRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    gap: 8,
     paddingVertical: 6,
     paddingHorizontal: 4,
   },
   summaryLabel: {
+    flexShrink: 1,
     fontSize: 13,
     color: '#52606d',
   },

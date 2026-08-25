@@ -38,7 +38,7 @@ export function NewGameScreen({ onStartGame }: NewGameScreenProps) {
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.title}>Yahtzee</Text>
+      <Text style={styles.title}>Yan</Text>
       <Text style={styles.subtitle}>Quem vai jogar?</Text>
 
       {names.map((name, index) => (
