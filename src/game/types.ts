@@ -46,4 +46,6 @@ export interface GameState {
   heldDice: boolean[];
   rollsLeft: number;
   isGameOver: boolean;
+  /** Incrementa a cada rolagem real (nunca reseta); usado pela UI para disparar a animação dos dados. */
+  rollSequence: number;
 }

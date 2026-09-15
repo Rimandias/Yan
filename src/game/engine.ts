@@ -42,6 +42,7 @@ export function createGame(playerNames: string[]): GameState {
     heldDice: Array(DICE_COUNT).fill(false),
     rollsLeft: MAX_ROLLS_PER_TURN,
     isGameOver: false,
+    rollSequence: 0,
   };
 }
 
@@ -103,6 +104,7 @@ export function rollDice(state: GameState, rng: RandomSource = defaultRandom): G
     ...state,
     dice,
     rollsLeft: state.rollsLeft - 1,
+    rollSequence: state.rollSequence + 1,
   };
 }
 

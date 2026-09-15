@@ -37,6 +37,15 @@ Sempre que a rolagem não pontuar na jogada escolhida, a jogada é **riscada**
 
 O total do jogador é a soma dos totais das 4 colunas.
 
+## Interface
+
+O app é mobile-first e **não usa rolagem de tela**: a cartela inteira (4 colunas x 14
+jogadas) sempre cabe na tela, com linhas e colunas dimensionadas dinamicamente conforme
+o tamanho do aparelho. Os dados são renderizados em **3D** (cubos com `transform`
+nativo, sem bibliotecas gráficas externas) e ficam num painel flutuante **sobre** a
+cartela — ao rolar, cada dado não segurado gira e assenta na face correspondente ao
+valor sorteado; tocar num dado alterna se ele fica seguro para a próxima rolagem.
+
 ## Estrutura do projeto
 
 ```
@@ -51,11 +60,13 @@ src/
                            # canPlaceScore, selectCategory
     __tests__/             # testes unitários da lógica (Jest)
   components/             # componentes de UI reutilizáveis
-    Die.tsx                # um dado (com pips), clicável para segurar
-    DiceTray.tsx            # os 5 dados + botão de rolar
-    ScoreBoard.tsx           # placar completo (4 colunas x 14 jogadas), interativo:
-                             # toda célula vazia é clicável e igual visualmente; a
-                             # validade só é checada no momento da colocação
+    Die3D.tsx              # dado em 3D (cubo com as 6 faces via transform), com
+                            # animação de giro até a face sorteada
+    DiceTray.tsx            # painel flutuante com os 5 dados 3D + botão de rolar,
+                             # exibido sobre a cartela
+    ScoreBoard.tsx           # cartela completa (4 colunas x 14 jogadas), interativa
+                             # e sem rolagem de tela: toda célula vazia é clicável e
+                             # igual visualmente; a validade só é checada no toque
     PrimaryButton.tsx       # botão padrão do app
   screens/
     NewGameScreen.tsx       # tela de configuração de jogadores

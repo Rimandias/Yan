@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 
 import { DiceTray } from '../components/DiceTray';
 import { PrimaryButton } from '../components/PrimaryButton';
@@ -68,33 +68,39 @@ export function GameScreen({ gameState, onUpdateGame, onNewGame }: GameScreenPro
   };
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.turnLabel}>Vez de {currentPlayer.name}</Text>
+    <View style={styles.screen}>
+      <View style={styles.header}>
+        <Text style={styles.turnLabel}>Vez de {currentPlayer.name}</Text>
+        {feedback ? (
+          <Text style={styles.feedbackText} numberOfLines={2}>
+            {feedback}
+          </Text>
+        ) : null}
+      </View>
 
-      <DiceTray
-        dice={gameState.dice}
-        heldDice={gameState.heldDice}
-        rollsLeft={gameState.rollsLeft}
-        onToggleHold={(index) => onUpdateGame(toggleHold(gameState, index))}
-        onRoll={() => {
-          setFeedback(null);
-          onUpdateGame(rollDice(gameState));
-        }}
-      />
+      <View style={styles.boardArea}>
+        <ScoreBoard
+          player={currentPlayer}
+          dice={gameState.dice}
+          rolled={rolled}
+          onSelectCell={handleSelectCell}
+        />
 
-      {feedback ? (
-        <View style={styles.feedbackBanner}>
-          <Text style={styles.feedbackText}>{feedback}</Text>
+        <View style={styles.diceOverlay} pointerEvents="box-none">
+          <DiceTray
+            dice={gameState.dice}
+            heldDice={gameState.heldDice}
+            rollsLeft={gameState.rollsLeft}
+            rollSequence={gameState.rollSequence}
+            onToggleHold={(index) => onUpdateGame(toggleHold(gameState, index))}
+            onRoll={() => {
+              setFeedback(null);
+              onUpdateGame(rollDice(gameState));
+            }}
+          />
         </View>
-      ) : null}
-
-      <ScoreBoard
-        player={currentPlayer}
-        dice={gameState.dice}
-        rolled={rolled}
-        onSelectCell={handleSelectCell}
-      />
-    </ScrollView>
+      </View>
+    </View>
   );
 }
 
@@ -104,7 +110,7 @@ function GameOverScreen({ gameState, onNewGame }: { gameState: GameState; onNewG
     .sort((a, b) => b.total - a.total);
 
   return (
-    <ScrollView contentContainerStyle={styles.gameOverContainer}>
+    <View style={styles.gameOverContainer}>
       <Text style={styles.title}>Fim de jogo!</Text>
       <Text style={styles.winner}>🏆 {ranked[0].player.name}</Text>
 
@@ -119,39 +125,43 @@ function GameOverScreen({ gameState, onNewGame }: { gameState: GameState; onNewG
       <View style={styles.newGameButton}>
         <PrimaryButton label="Novo jogo" onPress={onNewGame} />
       </View>
-    </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flexGrow: 1,
+  screen: {
+    flex: 1,
+    padding: 12,
+    gap: 8,
+  },
+  header: {
     alignItems: 'center',
-    padding: 20,
-    gap: 16,
+    gap: 4,
   },
   turnLabel: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: '700',
     color: '#1f2933',
   },
-  feedbackBanner: {
-    width: '100%',
-    maxWidth: 360,
-    backgroundColor: '#fff4e5',
-    borderWidth: 1,
-    borderColor: '#f0b429',
-    borderRadius: 8,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-  },
   feedbackText: {
-    fontSize: 13,
+    fontSize: 12,
     color: '#8a5a00',
     textAlign: 'center',
   },
+  boardArea: {
+    flex: 1,
+    position: 'relative',
+  },
+  diceOverlay: {
+    position: 'absolute',
+    top: '28%',
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+  },
   gameOverContainer: {
-    flexGrow: 1,
+    flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
     padding: 24,

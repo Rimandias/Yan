@@ -1,4 +1,5 @@
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useState } from 'react';
+import { LayoutChangeEvent, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { CATEGORY_ORDER, COLUMNS } from '../game/categories';
 import { scoreForCategory } from '../game/scoring';
@@ -13,38 +14,74 @@ interface ScoreBoardProps {
   onSelectCell: (columnId: ColumnId, categoryId: CategoryId) => void;
 }
 
-const ROW_HEIGHT = 32;
-const DATA_COL_WIDTH = 76;
+// header + 14 jogadas + 4 linhas de resumo (soma sup., bônus sup., bônus coluna, total)
+const TOTAL_ROWS = 1 + CATEGORY_ORDER.length + 4;
+const LABEL_COLUMN_RATIO = 0.28;
+const MIN_LABEL_WIDTH = 92;
 
 export function ScoreBoard({ player, dice, rolled, onSelectCell }: ScoreBoardProps) {
+  const [size, setSize] = useState({ width: 0, height: 0 });
+
+  const handleLayout = (event: LayoutChangeEvent) => {
+    const { width, height } = event.nativeEvent.layout;
+    setSize({ width, height });
+  };
+
+  const labelColumnWidth = Math.max(MIN_LABEL_WIDTH, Math.round(size.width * LABEL_COLUMN_RATIO));
+  const dataColumnWidth = size.width > 0 ? (size.width - labelColumnWidth) / COLUMNS.length : 0;
+  const rowHeight = size.height > 0 ? size.height / TOTAL_ROWS : 0;
+
   const columnTotals = COLUMNS.map((column) => computeColumnTotals(player.columns[column.id]));
+  const ready = size.width > 0 && size.height > 0;
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Placar de {player.name}</Text>
-      <View style={styles.board}>
-        <View style={styles.labelColumn}>
-          <View style={styles.headerCell} />
-          {CATEGORY_ORDER.map((category) => (
-            <Text key={category.id} style={styles.labelCell} numberOfLines={1}>
-              {category.label}
+    <View style={styles.container} onLayout={handleLayout}>
+      {ready ? (
+        <View style={styles.board}>
+          <View style={[styles.labelColumn, { width: labelColumnWidth }]}>
+            <View style={{ height: rowHeight }} />
+            {CATEGORY_ORDER.map((category) => (
+              <Text
+                key={category.id}
+                style={[styles.labelCell, { height: rowHeight }]}
+                numberOfLines={1}
+                adjustsFontSizeToFit
+              >
+                {category.label}
+              </Text>
+            ))}
+            <Text style={[styles.labelCell, { height: rowHeight }]} numberOfLines={1} adjustsFontSizeToFit>
+              Soma superior
             </Text>
-          ))}
-          <Text style={styles.labelCell}>Soma superior</Text>
-          <Text style={styles.labelCell}>Bônus superior</Text>
-          <Text style={styles.labelCell}>Bônus coluna</Text>
-          <Text style={[styles.labelCell, styles.totalLabelCell]}>Total</Text>
-        </View>
+            <Text style={[styles.labelCell, { height: rowHeight }]} numberOfLines={1} adjustsFontSizeToFit>
+              Bônus superior
+            </Text>
+            <Text style={[styles.labelCell, { height: rowHeight }]} numberOfLines={1} adjustsFontSizeToFit>
+              Bônus coluna
+            </Text>
+            <Text
+              style={[styles.labelCell, styles.totalLabelCell, { height: rowHeight }]}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+            >
+              Total
+            </Text>
+          </View>
 
-        <ScrollView horizontal showsHorizontalScrollIndicator>
           <View style={styles.dataColumns}>
             {COLUMNS.map((column, columnIndex) => {
               const totals = columnTotals[columnIndex];
               const scores = player.columns[column.id];
 
               return (
-                <View key={column.id} style={styles.dataColumn}>
-                  <Text style={styles.headerCellText}>{column.label}</Text>
+                <View key={column.id} style={[styles.dataColumn, { width: dataColumnWidth }]}>
+                  <Text
+                    style={[styles.headerCellText, { height: rowHeight }]}
+                    numberOfLines={1}
+                    adjustsFontSizeToFit
+                  >
+                    {column.label}
+                  </Text>
                   {CATEGORY_ORDER.map((category) => {
                     const scored = scores[category.id];
                     const isFilled = scored !== undefined;
@@ -57,7 +94,7 @@ export function ScoreBoard({ player, dice, rolled, onSelectCell }: ScoreBoardPro
                         accessibilityLabel={`${column.label} - ${category.label}`}
                         disabled={isFilled || !rolled}
                         onPress={() => onSelectCell(column.id, category.id)}
-                        style={styles.dataCellPressable}
+                        style={[styles.dataCellPressable, { height: rowHeight }]}
                       >
                         <Text
                           style={[
@@ -70,32 +107,29 @@ export function ScoreBoard({ player, dice, rolled, onSelectCell }: ScoreBoardPro
                       </Pressable>
                     );
                   })}
-                  <Text style={styles.dataCell}>{totals.upperSum}</Text>
-                  <Text style={styles.dataCell}>{totals.upperBonus}</Text>
-                  <Text style={styles.dataCell}>{totals.wholeColumnBonus}</Text>
-                  <Text style={[styles.dataCell, styles.totalDataCell]}>{totals.columnTotal}</Text>
+                  <Text style={[styles.dataCell, { height: rowHeight }]}>{totals.upperSum}</Text>
+                  <Text style={[styles.dataCell, { height: rowHeight }]}>{totals.upperBonus}</Text>
+                  <Text style={[styles.dataCell, { height: rowHeight }]}>{totals.wholeColumnBonus}</Text>
+                  <Text style={[styles.dataCell, styles.totalDataCell, { height: rowHeight }]}>
+                    {totals.columnTotal}
+                  </Text>
                 </View>
               );
             })}
           </View>
-        </ScrollView>
-      </View>
+        </View>
+      ) : null}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
+    flex: 1,
     width: '100%',
-    maxWidth: 360,
-  },
-  title: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#52606d',
-    marginBottom: 6,
   },
   board: {
+    flex: 1,
     flexDirection: 'row',
     borderWidth: 1,
     borderColor: '#d9e2ec',
@@ -106,13 +140,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#f0f4f8',
     borderRightWidth: 1,
     borderRightColor: '#d9e2ec',
-    minWidth: 110,
-  },
-  headerCell: {
-    height: ROW_HEIGHT,
   },
   headerCellText: {
-    height: ROW_HEIGHT,
     fontSize: 12,
     fontWeight: '700',
     color: '#1f2933',
@@ -120,7 +149,6 @@ const styles = StyleSheet.create({
     textAlignVertical: 'center',
   },
   labelCell: {
-    height: ROW_HEIGHT,
     fontSize: 11,
     color: '#1f2933',
     paddingHorizontal: 6,
@@ -130,19 +158,17 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   dataColumns: {
+    flex: 1,
     flexDirection: 'row',
   },
   dataColumn: {
-    width: DATA_COL_WIDTH,
     borderRightWidth: 1,
     borderRightColor: '#d9e2ec',
   },
   dataCellPressable: {
-    height: ROW_HEIGHT,
     justifyContent: 'center',
   },
   dataCell: {
-    height: ROW_HEIGHT,
     fontSize: 12,
     color: '#1f2933',
     textAlign: 'center',

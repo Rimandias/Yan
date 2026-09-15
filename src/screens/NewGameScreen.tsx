@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { PrimaryButton } from '../components/PrimaryButton';
 
@@ -37,7 +37,7 @@ export function NewGameScreen({ onStartGame }: NewGameScreenProps) {
   };
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
+    <View style={styles.container}>
       <Text style={styles.title}>Yan</Text>
       <Text style={styles.subtitle}>Quem vai jogar?</Text>
 
@@ -60,13 +60,13 @@ export function NewGameScreen({ onStartGame }: NewGameScreenProps) {
       <View style={styles.startButton}>
         <PrimaryButton label="Começar jogo" onPress={startGame} />
       </View>
-    </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    flexGrow: 1,
+    flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
     padding: 24,
